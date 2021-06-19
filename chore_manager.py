@@ -6,15 +6,20 @@ week2 = []
 week3 = []
 week4 = []
 locked_day = []
+total_chores = 0
 
+day_people_map = dict()
+total_people = 0
 
-def read_chores_list():
-    print("[INIT - reading chores csv]")
+def parse_chores():
+    print("\n[INIT - reading chores tsv]")
+    global total_chores
     # Define a filename.
     filename = "chore_list_data.tsv"
 
     if not os.path.isfile(filename):
         print('File does not exist.')
+        raise IOError
 
     # Open the file as f.
     # The function readlines() reads the file.
@@ -28,32 +33,34 @@ def read_chores_list():
         content = f.read().splitlines()
         # print(content)
 
-    twice_weekly = []
-
     # Show the file contents line by line.
     for line in content:
         # print(line)
-        key, desc, freq, prio, locked_day = line.split("\t")
+        key, desc, freq, prio, specific_day = line.split("\t")
         chore_map[key] = (desc, freq, prio)
-        if locked_day != "any":
+        if specific_day != "any":
             locked_day.append((key, desc, freq, prio, locked_day))
-            # todo: incomplete
+            # todo: incomplete special case coverage
 
         if freq == "1":
             week2.append(key)
+            total_chores += 1
         elif freq == "2":
             week1.append(key)
             week3.append(key)
+            total_chores += 2
         elif freq == "4":
             week1.append(key)
             week2.append(key)
             week3.append(key)
             week4.append(key)
+            total_chores += 4
             if freq == "8":
                 week1.insert(0, key)
                 week2.insert(0, key)
                 week3.insert(0, key)
                 week4.insert(0, key)
+                total_chores += 4
 
 
 def print_weekly_chores(print_level):
@@ -62,6 +69,8 @@ def print_weekly_chores(print_level):
         print("week 2: " + str(len(week2)) + " items")
         print("week 3: " + str(len(week3)) + " items")
         print("week 4: " + str(len(week4)) + " items")
+        print("-------------------")
+        print("(total chores: " + str(total_chores) + ")")
     elif print_level == 2:
         print("week1 --------------------------------------------")
         for c in week1:
@@ -75,7 +84,94 @@ def print_weekly_chores(print_level):
         print("week4 --------------------------------------------")
         for c in week4:
             print(chore_map.get(c)[0])
+        print("-------------------")
+        print("(total chores: " + str(total_chores) + ")")
 
 
-read_chores_list()
+def parse_people_data():
+    print("\n[INIT - reading people tsv]")
+    global total_people
+    # Define a filename.
+    filename = "people_data.tsv"
+
+    if not os.path.isfile(filename):
+        print('File does not exist.')
+        raise IOError
+
+    day_people_map["mon"] = []
+    day_people_map["tue"] = []
+    day_people_map["wed"] = []
+    day_people_map["thu"] = []
+    day_people_map["fri"] = []
+    day_people_map["sat"] = []
+    day_people_map["sun"] = []
+
+    # Open the file as f.
+    # The function readlines() reads the file.
+
+    reading_header = True
+    with open(filename) as f:
+        if reading_header:
+            f.readline()
+            reading_header = False
+
+        content = f.read().splitlines()
+        # print(content)
+
+    # Show the file contents line by line.
+    for line in content:
+        # print(line)
+        mon, tue, wed, thu, fri, sat, sun = line.split("\t")
+        if mon != "":
+            day_people_map["mon"].append(mon)
+            total_people += 1
+        if tue != "":
+            day_people_map["tue"].append(tue)
+            total_people += 1
+        if wed != "":
+            day_people_map["wed"].append(wed)
+            total_people += 1
+        if thu != "":
+            day_people_map["thu"].append(thu)
+            total_people += 1
+        if fri != "":
+            day_people_map["fri"].append(fri)
+            total_people += 1
+        if sat != "":
+            day_people_map["sat"].append(sat)
+            total_people += 1
+        if sun != "":
+            day_people_map["sun"].append(sun)
+            total_people += 1
+
+
+def print_people(print_level):
+    if print_level == 1:
+        print("mondays: " + str(len(day_people_map["mon"])) + " people")
+        print("tuesdays: " + str(len(day_people_map["tue"])) + " people")
+        print("wednesdays: " + str(len(day_people_map["wed"])) + " people")
+        print("thursdays: " + str(len(day_people_map["thu"])) + " people")
+        print("fridays: " + str(len(day_people_map["fri"])) + " people")
+        print("saturdays: " + str(len(day_people_map["sat"])) + " people")
+        print("sundays: " + str(len(day_people_map["sun"])) + " people")
+        print("-------------------")
+        print("(total people: " + str(total_people) + ")")
+
+    elif print_level == 2:
+        print("mondays: " + ' '.join(day_people_map["mon"]))
+        print("tuesdays: " + ' '.join(day_people_map["tue"]))
+        print("wednesdays: " + ' '.join(day_people_map["wed"]))
+        print("thursdays: " + ' '.join(day_people_map["thu"]))
+        print("fridays: " + ' '.join(day_people_map["fri"]))
+        print("saturdays: " + ' '.join(day_people_map["sat"]))
+        print("sundays: " + ' '.join(day_people_map["sun"]))
+        print("-------------------")
+        print("(total people: " + str(total_people) + ")")
+
+
+
+parse_chores()
 print_weekly_chores(1)
+
+parse_people_data()
+print_people(1)
