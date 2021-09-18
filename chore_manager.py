@@ -3,7 +3,7 @@ import random
 from chore import Chore
 import datetime
 
-DEBUG_INFO = 1  # 0 - none. 1 - method calls. 2 - details. 3 - variable values
+DEBUG_INFO = 1  # 0 - silent. 1 - method calls. 2 - details. 3 - variable values
 ACTIVE_DAYS = []
 NUM_DAYS = -1
 WEEKS = 12
@@ -15,9 +15,13 @@ total_chores = 0
 total_people = 0
 
 
+def debug_print(message, debug_level):
+    if DEBUG_INFO >= debug_level:
+        print(message)
+
+
 def parse_people_data():
-    if DEBUG_INFO >= 1:
-        print("Attempting to parse people data...")
+    debug_print("Attempting to parse people data...", 1)
     global total_people
     global ACTIVE_DAYS
     global NUM_DAYS
@@ -40,9 +44,8 @@ def parse_people_data():
             ACTIVE_DAYS = head[0].split("\t")  # jank array access, but trust me, it works.
             NUM_DAYS = len(ACTIVE_DAYS)
 
-            if DEBUG_INFO >= 2:
-                print("    Active days: " + str(ACTIVE_DAYS))
-                print("    Num days; " + str(NUM_DAYS))
+            debug_print("    Active days: " + str(ACTIVE_DAYS), 2)
+            debug_print("    Num days; " + str(NUM_DAYS), 2)
             reading_header = False
 
         content = f.read().splitlines()
@@ -51,12 +54,10 @@ def parse_people_data():
     for day in ACTIVE_DAYS:
         people[day] = []
 
-    if DEBUG_INFO >= 2:
-        print("-------------------------------")
-        print("    people data:")
+    debug_print("-------------------------------", 2)
+    debug_print("    people data:", 2)
     for line in content:
-        if DEBUG_INFO >= 3:
-            print("        " + line)
+        debug_print("        " + line, 3)
 
         day_data = line.split("\t")
         index = 0
@@ -66,14 +67,12 @@ def parse_people_data():
                 total_people += 1
             index += 1
 
-    if DEBUG_INFO >= 1:
-        print("Successfully parsed people data!")
+    debug_print("Successfully parsed people data!", 1)
     return people
 
 
 def parse_chores():
-    if DEBUG_INFO >= 1:
-        print("Attempting to parse chore data...")
+    debug_print("Attempting to parse chore data...", 1)
 
     global total_chores
     global FREE_CHORE
@@ -106,13 +105,11 @@ def parse_chores():
     f.close()
 
     # Show the file contents line by line.
-    if DEBUG_INFO >= 2:
-        print("-------------------------------")
-        print("    chores data:")
+    debug_print("-------------------------------", 2)
+    debug_print("    chores data:", 2)
 
     for line in content:
-        if DEBUG_INFO >= 3:
-            print("        " + line)
+        debug_print("        " + line, 3)
 
         desc, chore, freq, specific_day = line.split("\t")
         parsed_chore = Chore(desc, chore, freq, specific_day)
@@ -175,8 +172,7 @@ def parse_chores():
     for l in scaled_chores:
         merged_chores += l
 
-    if DEBUG_INFO >= 1:
-        print("Successfully parsed chore data!")
+    debug_print("Successfully parsed chore data!", 1)
     return merged_chores
 
 
@@ -189,6 +185,7 @@ def show_diagnostics(len_scaled_chores):
         print("running schedule for " + str(WEEKS) + " weeks.")
         if total_chores - (total_people * CHORES_PER_WEEK) >= 0.1 * total_chores:
             print("WARNING: more than 10% gap between total chores and people slots. Continuing means many free chores")
+        print("-------------------------------")
 
 
 def build_schedule(days_people, chore_rotation):
@@ -219,6 +216,8 @@ def write_schedule(file, schedule, week_num):
 
 
 def build_weekly_schedules(people, scaled_chores_list):
+    debug_print("Building schedule...", 1)
+
     # Define a filename.
     filename = "schedule.txt"
 
@@ -232,6 +231,7 @@ def build_weekly_schedules(people, scaled_chores_list):
         scaled_chores_list.append(scaled_chores_list.pop(0))
         f.write("\n")
     f.close()
+    debug_print("Building succeeded...", 1)
 
 
 people = parse_people_data()
