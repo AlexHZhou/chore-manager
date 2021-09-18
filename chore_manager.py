@@ -8,8 +8,8 @@ ACTIVE_DAYS = []
 NUM_DAYS = -1
 WEEKS = 12
 CHORES_PER_WEEK = 1
+FREE_CHORE = None
 
-chores = []
 locked_day = []
 total_chores = 0
 total_people = 0
@@ -76,6 +76,8 @@ def parse_chores():
         print("Attempting to parse chore data...")
 
     global total_chores
+    global FREE_CHORE
+    chores = []
     scaled_chores = []
     for i in range(NUM_DAYS):
         scaled_chores.append([])
@@ -112,13 +114,18 @@ def parse_chores():
         if DEBUG_INFO >= 3:
             print("        " + line)
 
-        key, desc, freq, specific_day = line.split("\t")
-        parsed_chore = Chore(key, desc, freq, specific_day)
-        chores.append(parsed_chore)
+        desc, chore, freq, specific_day = line.split("\t")
+        parsed_chore = Chore(desc, chore, freq, specific_day)
+
+        if desc.lower() == "free space":
+            FREE_CHORE = parsed_chore
+        else:
+            chores.append(parsed_chore)
 
         if specific_day != "any":
             locked_day.append((specific_day, parsed_chore))
-            # todo: incomplete special case coverage
+            # todo: incomplete special case coverage (fridge clean on Monday)
+            # but could I really be fucked to do this bit. It's a bit tricky. Bleh.
 
         if freq.lower() == "daily":
             for i in range(NUM_DAYS):
@@ -129,13 +136,14 @@ def parse_chores():
             scaled_chores[int((NUM_DAYS+1)/2)].append(parsed_chore)
             total_chores += 2
         elif freq.lower() == "weekly":
-            min = 420  # arbitrary high  number
+            min = 420  # arbitrary high number bc Python doesn't have max_int
             min_index = -1
             for i in range(NUM_DAYS):
                 if len(scaled_chores[i]) < min:
                     min = len(scaled_chores[i])
                     min_index = i
             scaled_chores[min_index].append(parsed_chore)
+            total_chores += 1
         elif (freq.lower() == "bimonthly") | (freq.lower() == "bi-monthly"):
             # really sus way of doing bimonthly. tricky to do legit,
             # because this program runs on a weekly system
@@ -147,6 +155,7 @@ def parse_chores():
                         min = len(scaled_chores[i])
                         min_index = i
                 scaled_chores[min_index].append(parsed_chore)
+                total_chores += 1
         elif freq.lower() == "monthly":
             # still jank
             if random.random() <= 0.26:  # .26 because more often then not, need the chore
@@ -157,6 +166,7 @@ def parse_chores():
                         min = len(scaled_chores[i])
                         min_index = i
                 scaled_chores[min_index].append(parsed_chore)
+                total_chores += 1
         else:
             print(freq + " is not a valid freq parameter. Must be 'daily, bi-weekly, or weekly'")
             raise IOError
@@ -170,13 +180,15 @@ def parse_chores():
     return merged_chores
 
 
-def show_diagnostics():
+def show_diagnostics(len_scaled_chores):
     if DEBUG_INFO >= 1:
         print("-------------------------------")
         print("Chore manager initialized with these params:")
-        print("number of chores (scaled) - " + str(total_chores))
+        print("number of chores (scaled) - " + str(len_scaled_chores))
         print("number of people (scaled) - " + str(total_people * CHORES_PER_WEEK))
         print("running schedule for " + str(WEEKS) + " weeks.")
+        if total_chores - (total_people * CHORES_PER_WEEK) >= 0.1 * total_chores:
+            print("WARNING: more than 10% gap between total chores and people slots. Continuing means many free chores")
 
 
 def build_schedule(days_people, chore_rotation):
@@ -188,7 +200,8 @@ def build_schedule(days_people, chore_rotation):
             if index < len(chore_rotation):
                 schedule[day][person] = chore_rotation[index]
             else:
-                schedule[day][person] = "free day"
+                schedule[day][person] = FREE_CHORE
+                print("added free space: " + str(FREE_CHORE))
             index += 1
 
     if DEBUG_INFO >= 3:
@@ -197,7 +210,7 @@ def build_schedule(days_people, chore_rotation):
 
 
 def write_schedule(file, schedule, week_num):
-    file.write("WEEK " + str(week_num) + " CHORES: \n")
+    file.write("WEEK " + str(week_num) + "\n")
     for day, assigned_chores in schedule.items():
         file.write(day + " Chores --------------------------------------------------------------\n")
         for person, chore in assigned_chores.items():
@@ -223,7 +236,7 @@ def build_weekly_schedules(people, scaled_chores_list):
 
 people = parse_people_data()
 scaled_chores_list = parse_chores()
-show_diagnostics()
+show_diagnostics(len(scaled_chores_list))
 build_weekly_schedules(people, scaled_chores_list)
 
 
