@@ -11,11 +11,12 @@ total_chores = 0
 day_people_map = dict()
 total_people = 0
 
+
 def parse_chores():
     print("\n[INIT - reading chores tsv]")
     global total_chores
     # Define a filename.
-    filename = "chore_list_data.tsv"
+    filename = "chores_half_data.tsv"
 
     if not os.path.isfile(filename):
         print('File does not exist.')
@@ -43,7 +44,10 @@ def parse_chores():
             # todo: incomplete special case coverage
 
         if freq == "1":
-            week2.append(key)
+            if len(week2) < len(week4):
+                week2.append(key)
+            else:
+                week4.append(key)
             total_chores += 1
         elif freq == "2":
             week1.append(key)
@@ -92,7 +96,7 @@ def parse_people_data():
     print("\n[INIT - reading people tsv]")
     global total_people
     # Define a filename.
-    filename = "people_data.tsv"
+    filename = "people_half_data.tsv"
 
     if not os.path.isfile(filename):
         print('File does not exist.')
