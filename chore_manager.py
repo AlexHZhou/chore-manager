@@ -183,8 +183,11 @@ def show_diagnostics(len_scaled_chores):
         print("number of chores (scaled) - " + str(len_scaled_chores))
         print("number of people (scaled) - " + str(total_people * CHORES_PER_WEEK))
         print("running schedule for " + str(WEEKS) + " weeks.")
-        if total_chores - (total_people * CHORES_PER_WEEK) >= 0.1 * total_chores:
+        if len_scaled_chores - (total_people * CHORES_PER_WEEK) >= 0.2 * total_chores:
             print("WARNING: more than 10% gap between total chores and people slots. Continuing means many free chores")
+        if len_scaled_chores - (total_people * CHORES_PER_WEEK) >= -1 * 0.2 * total_chores:
+            print("WARNING: more than 10% gap between people slots and total chores. Continuing means many repeat chores")
+
         print("-------------------------------")
 
 
@@ -223,7 +226,7 @@ def build_weekly_schedules(people, scaled_chores_list):
 
     # Open the file as f.
     f = open(filename, 'w')
-    f.write("Chore schedule, created " + str(datetime.date.today()))
+    f.write("Chore schedule, created " + str(datetime.date.today()) + "\n\n")
 
     for index in range(WEEKS):
         schedule = build_schedule(people, scaled_chores_list)
