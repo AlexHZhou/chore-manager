@@ -78,6 +78,8 @@ def parse_chores():
     global FREE_CHORE
     chores = []
     scaled_chores = []
+    dailies = []
+
     for i in range(NUM_DAYS):
         scaled_chores.append([])
 
@@ -125,9 +127,10 @@ def parse_chores():
             # but could I really be fucked to do this bit. It's a bit tricky. Bleh.
 
         if freq.lower() == "daily":
-            for i in range(NUM_DAYS):
-                scaled_chores[i].append(parsed_chore)
-            total_chores += NUM_DAYS
+            dailies.append(parsed_chore)
+            # for i in range(NUM_DAYS):
+            #     scaled_chores[i].append(parsed_chore)
+            # total_chores += NUM_DAYS
         elif (freq.lower() == "biweekly") | (freq.lower() == "bi-weekly"):  # for the mf who uses hyphens.
             scaled_chores[0].append(parsed_chore)
             scaled_chores[int((NUM_DAYS+1)/2)].append(parsed_chore)
@@ -173,40 +176,67 @@ def parse_chores():
         merged_chores += l
 
     debug_print("Successfully parsed chore data!", 1)
-    return merged_chores
+    return merged_chores, dailies
 
 
-def show_diagnostics(len_scaled_chores):
+def show_diagnostics(len_scaled_chores, len_dailies):
     if DEBUG_INFO >= 1:
         print("-------------------------------")
         print("Chore manager initialized with these params:")
-        print("number of chores (scaled) - " + str(len_scaled_chores))
+        print("number of daily chores - " + str(len_dailies))
+        print("number of non-daily chores (scaled) - " + str(len_scaled_chores))
         print("number of people (scaled) - " + str(total_people * CHORES_PER_WEEK))
         print("running schedule for " + str(WEEKS) + " weeks.")
-        if len_scaled_chores - (total_people * CHORES_PER_WEEK) >= 0.2 * total_chores:
+        if len_scaled_chores + len_dailies - (total_people * CHORES_PER_WEEK) >= 0.2 * total_chores:
             print("WARNING: more than 10% gap between total chores and people slots. Continuing means many free chores")
-        if len_scaled_chores - (total_people * CHORES_PER_WEEK) >= -1 * 0.2 * total_chores:
+        if len_scaled_chores + len_dailies - (total_people * CHORES_PER_WEEK) >= -1 * 0.2 * total_chores:
             print("WARNING: more than 10% gap between people slots and total chores. Continuing means many repeat chores")
 
         print("-------------------------------")
 
 
-def build_schedule(days_people, chore_rotation):
+def build_schedule(days_people, chore_rotation, dailies):
     schedule = {}
     index = 0
+
     for day in ACTIVE_DAYS:
         schedule[day] = {}
+        daily_chores = []
+
+        for x in range(len(days_people[day]) - len(dailies)):
+            daily_chores.append(chore_rotation[index])
+            index += 1
+        for chore in dailies:
+            daily_chores.insert(random.randint(0, len(daily_chores)), chore)
+
+        day_index = 0
         for person in days_people[day]:
-            if index < len(chore_rotation):
-                schedule[day][person] = chore_rotation[index]
+            if day_index < len(daily_chores):
+                schedule[day][person] = daily_chores[day_index]
             else:
                 schedule[day][person] = FREE_CHORE
-                print("added free space: " + str(FREE_CHORE))
-            index += 1
+                debug_print("added free space: " + str(FREE_CHORE), 2)
+            day_index += 1
 
     if DEBUG_INFO >= 3:
         print(schedule)
     return schedule
+
+
+def insert_dailies(chore_rotation, dailies, max_index):
+    if len(dailies) == 0:
+        debug_print("no dailies to insert", 1)
+        print("no dailies to insert")
+        return chore_rotation
+
+    completed_rotation = chore_rotation.copy()
+    d = dailies.copy()
+    while len(d) > 0:
+        i = random.randint(0, max_index - 1)
+        c = d.pop()
+        print("i: " + str(i) + ", " + str(c))
+        completed_rotation.insert(i, c)
+    return completed_rotation
 
 
 def write_schedule(file, schedule, week_num):
@@ -218,7 +248,7 @@ def write_schedule(file, schedule, week_num):
         file.write("\n")
 
 
-def build_weekly_schedules(people, scaled_chores_list):
+def build_weekly_schedules(people, scaled_chores_list, dailies):
     debug_print("Building schedule...", 1)
 
     # Define a filename.
@@ -226,20 +256,18 @@ def build_weekly_schedules(people, scaled_chores_list):
 
     # Open the file as f.
     f = open(filename, 'w')
-    f.write("Chore schedule, created " + str(datetime.date.today()) + "\n\n")
+    f.write("Chore schedule, created " + str(datetime.datetime.today()) + "\n\n")
 
     for index in range(WEEKS):
-        schedule = build_schedule(people, scaled_chores_list)
+        schedule = build_schedule(people, scaled_chores_list, dailies)
         write_schedule(f, schedule, index+1)
         scaled_chores_list.append(scaled_chores_list.pop(0))
-        f.write("\n")
+    f.write("\n")
     f.close()
     debug_print("Building succeeded...", 1)
 
 
 people = parse_people_data()
-scaled_chores_list = parse_chores()
-show_diagnostics(len(scaled_chores_list))
-build_weekly_schedules(people, scaled_chores_list)
-
-
+scaled_chores_list, dailies = parse_chores()
+show_diagnostics(len(scaled_chores_list), len(dailies))
+build_weekly_schedules(people, scaled_chores_list, dailies)
